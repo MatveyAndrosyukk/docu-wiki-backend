@@ -159,12 +159,12 @@ export class FilesService {
         const tree = await treeRepository.findDescendantsTree(root);
 
         const extractImagePaths = (content: string): string[] => {
-            const imageRegex = /\[image\/([^.\[\]]+\.(png|jpg|jpeg|gif|webp))]/g;
+            const imageRegex = /\[image\/(.+?)]/g;
             const imagePaths: string[] = [];
             let match: string[] | null;
 
             while ((match = imageRegex.exec(content)) !== null) {
-                imagePaths.push(match[1]);
+                imagePaths.push(match[1].split(':')[1]);
             }
             return imagePaths;
         };
@@ -210,13 +210,10 @@ export class FilesService {
 
         const filesCount = filesOnly.length;
 
-        for (const imageName of Array.from(allImageNames)) {
-            try {
-                const imagePath = await this.imagesService.getImagePathByName(imageName);
-                require('fs').unlinkSync(imagePath);
-            } catch (error) {
-                console.warn(`Image ${imageName} not found or already deleted`);
-            }
+        try {
+            await this.imagesService.deleteImgbbImages(Array.from(allImageNames));
+        }catch (error) {
+            console.warn(error.message);
         }
 
         await this.fileRepository.delete(idsToRemove);

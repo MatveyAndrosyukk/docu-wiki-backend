@@ -15,13 +15,14 @@ import {CacheModule} from "@nestjs/cache-manager";
 
 @Module({
     imports: [
+        ConfigModule.forRoot({
+            isGlobal: true,
+            envFilePath: `.${process.env.NODE_ENV}.env`,
+        }),
         CacheModule.register({
             ttl: 300,
             max: 100,
             isGlobal: true,
-        }),
-        ConfigModule.forRoot({
-            envFilePath: `.${process.env.NODE_ENV}.env`,
         }),
         TypeOrmModule.forRoot({
             type: 'mysql',
@@ -30,8 +31,8 @@ import {CacheModule} from "@nestjs/cache-manager";
             username: process.env.MYSQL_USERNAME,
             password: process.env.MYSQL_PASSWORD,
             database: process.env.MYSQL_DATABASE,
-            entities: [User, Role],
             autoLoadEntities: true,
+            ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
             synchronize: true,
         }),
         TypeOrmModule.forFeature([User, Role, File]),

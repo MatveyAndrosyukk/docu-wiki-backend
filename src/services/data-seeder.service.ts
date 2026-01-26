@@ -21,9 +21,9 @@ export class DataSeederService implements OnApplicationBootstrap{
             {value: 'USER', description: 'Common user of DocuWiki'},
         ];
         const usersToSeed = [
-            {email: 'owner@gmail.com', password: 'owner123'},
-            {email: 'admin@gmail.com', password: 'admin123'},
-            {email: 'user@gmail.com', password: 'user123'},
+            {email: 'owner@gmail.com', password: '1357463'},
+            {email: 'admin@gmail.com', password: '1357463'},
+            {email: 'user@gmail.com', password: '1357463'},
         ];
 
         for (const role of rolesToSeed) {
