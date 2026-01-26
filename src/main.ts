@@ -9,7 +9,10 @@ async function main() {
   app.useGlobalPipes(new ValidationPipe({whitelist: true}));
 
   app.enableCors({
-    origin: ['http://localhost:3001'],
+    origin: [
+        'http://localhost:3001',
+        'https://www.docuwiki.ru'
+    ],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
   });
