@@ -6,6 +6,8 @@ import {RenameFileDto} from "./dto/rename-file.dto";
 import {File} from "./files.model";
 import {ChangeFileContentDto} from "./dto/change-file-content.dto";
 import {DeleteFileDto} from "./dto/delete-file.dto";
+import {GetFilesForUserDto} from "./dto/get-file-for-user.dto";
+import {FileDto} from "./types/file-dto";
 
 @Controller('files')
 export class FilesController {
@@ -13,18 +15,20 @@ export class FilesController {
     }
 
     @Get()
-    async getFilesForUser(@Query('email') email: string): Promise<File[]> {
-        if (!email) {
+    async getFilesForUser(
+        @Query('viewedUserEmail') viewedUserEmail: string,
+        @Query('loggedInUserEmail') loggedInUserEmail?: string
+    ): Promise<FileDto[]> {
+        if (!viewedUserEmail) {
             throw new HttpException('Email query parameter is required', HttpStatus.BAD_REQUEST);
         }
-        try {
-            return await this.fileService.getAllForUser(email);
-        } catch (error) {
-            throw new HttpException(
-                error instanceof Error ? error.message : 'User not found',
-                HttpStatus.NOT_FOUND
-            );
-        }
+
+        const dto: GetFilesForUserDto = {
+            viewedUserEmail,
+            loggedInUserEmail: loggedInUserEmail || ""
+        };
+
+        return await this.fileService.getAllForUser(dto);
     }
 
     @Get('isLiked')
@@ -49,8 +53,9 @@ export class FilesController {
     }
 
     @Post()
-    async saveFileForUser(@Body() dto: CreateFileDto): Promise<File> {
+    async saveFileForUser(@Body() dto: CreateFileDto): Promise<FileDto> {
         try {
+            console.log(dto);
             return await this.fileService.saveFileTreeForUser(dto);
         } catch (error) {
             throw new HttpException(
@@ -73,7 +78,7 @@ export class FilesController {
     }
 
     @Put('like')
-    async changeLikes(@Body() dto: ChangeFileLikesDto): Promise<File> {
+    async changeLikes(@Body() dto: ChangeFileLikesDto): Promise<FileDto> {
         try {
             return await this.fileService.changeLikes(dto);
         } catch (error) {

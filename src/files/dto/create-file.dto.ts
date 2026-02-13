@@ -22,8 +22,8 @@ export class CreateFileDto {
     likes: number | null;
 
     @ApiProperty({ example: 'Some string of a code block', description: `The content of saved file` })
-    @IsString({ message: 'Content should be a string' })
-    content: string;
+    @IsOptional()
+    content: string | null;
 
     @ApiProperty({ example: '1', description: `The id of the folder, where file will be saved`, required: false })
     @IsOptional()

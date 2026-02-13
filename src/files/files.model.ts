@@ -18,8 +18,8 @@ export class File {
     @Column({type: 'varchar', nullable: false, unique: false})
     name: string;
 
-    @Column({type: 'text', nullable: false, unique: false})
-    content: string;
+    @Column({type: 'text', nullable: true, unique: false})
+    content: string | null;
 
     @Column({type: 'varchar', nullable: false, unique: false})
     status: string;

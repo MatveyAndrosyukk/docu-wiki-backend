@@ -1,15 +1,17 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from "@nestjs/typeorm";
-import { File } from "./files.model";
-import { Repository } from "typeorm";
-import { UsersService } from "../users/users.service";
-import { CreateFileDto } from "./dto/create-file.dto";
-import { RenameFileDto } from "./dto/rename-file.dto";
-import { ChangeFileLikesDto } from "./dto/change-file-likes.dto";
-import { ChangeFileContentDto } from "./dto/change-file-content.dto";
-import { User } from "../users/users.model";
-import { DeleteFileDto } from "./dto/delete-file.dto";
-import { ImagesService } from "../images/images.service";
+import {Injectable} from '@nestjs/common';
+import {InjectRepository} from "@nestjs/typeorm";
+import {File} from "./files.model";
+import {Repository} from "typeorm";
+import {UsersService} from "../users/users.service";
+import {CreateFileDto} from "./dto/create-file.dto";
+import {RenameFileDto} from "./dto/rename-file.dto";
+import {ChangeFileLikesDto} from "./dto/change-file-likes.dto";
+import {ChangeFileContentDto} from "./dto/change-file-content.dto";
+import {User} from "../users/users.model";
+import {DeleteFileDto} from "./dto/delete-file.dto";
+import {ImagesService} from "../images/images.service";
+import {GetFilesForUserDto} from "./dto/get-file-for-user.dto";
+import {FileDto} from './types/file-dto';
 
 @Injectable()
 export class FilesService {
@@ -18,19 +20,22 @@ export class FilesService {
         private readonly fileRepository: Repository<File>,
         private readonly userService: UsersService,
         private readonly imagesService: ImagesService
-    ) {}
+    ) {
+    }
 
-    async getAllForUser(email: string): Promise<File[]> {
-        const user = await this.userService.findByEmail(email);
+    async getAllForUser(dto: GetFilesForUserDto): Promise<FileDto[]> {
+        const {viewedUserEmail, loggedInUserEmail} = dto;
+
+        const user = await this.userService.findByEmail(viewedUserEmail);
         if (!user) {
-            throw new Error(`User with email ${email} not found`);
+            throw new Error(`User with email ${viewedUserEmail} not found`);
         }
 
         const treeRepository = this.fileRepository.manager.getTreeRepository(File);
 
         const roots = await this.fileRepository.createQueryBuilder('file')
             .leftJoinAndSelect('file.author', 'author')
-            .where('author.id = :userId', { userId: user.id })
+            .where('author.id = :userId', {userId: user.id})
             .andWhere('file.parent IS NULL')
             .orderBy('file.name', 'ASC')
             .select([
@@ -39,13 +44,41 @@ export class FilesService {
             ])
             .getMany();
 
-        return await Promise.all(
+        const trees = await Promise.all(
             roots.map(root => treeRepository.findDescendantsTree(root)),
         );
+
+        const addIsLikedToTree = (files: File[], loggedInUserEmail: string) => {
+            return files.map(file => {
+                const isLiked = file.type === "File"
+                    ? file.likedEmails.includes(loggedInUserEmail) || false
+                    : false;
+
+                const fileDto: FileDto = {
+                    id: file.id,
+                    type: file.type,
+                    name: file.name,
+                    content: file.content,
+                    status: file.status,
+                    likes: file.likes,
+                    lastEditor: file.lastEditor,
+                    author: file.author,
+                    parent: file.parent ? file.parent.id : null,
+                    children: file.children.length
+                        ? addIsLikedToTree(file.children, loggedInUserEmail)
+                        : [],
+                    isLiked
+                };
+
+                return fileDto;
+            })
+        }
+
+        return addIsLikedToTree(trees.flat(), loggedInUserEmail || '');
     }
 
     async checkIfUserLikedFile(id: number, email: string): Promise<boolean> {
-        const file = await this.fileRepository.findOne({ where: { id } });
+        const file = await this.fileRepository.findOne({where: {id}});
         if (!file) {
             throw new Error(`File with id ${id} not found`);
         }
@@ -86,25 +119,24 @@ export class FilesService {
         return await treeRepository.findDescendantsTree(savedFile);
     }
 
-    async saveFileTreeForUser(dto: CreateFileDto): Promise<File> {
+    async saveFileTreeForUser(dto: CreateFileDto): Promise<FileDto> {
         const user = await this.userService.findByEmail(dto.author);
-        if (!user) {
-            throw new Error(`User with email ${dto.author} not found`);
-        }
+        if (!user) throw new Error(`User with email ${dto.author} not found`);
 
         let parentFile: File | null = null;
         if (dto.parent !== null && dto.parent !== undefined) {
-            parentFile = await this.fileRepository.findOne({ where: { id: dto.parent } });
-            if (!parentFile) {
-                throw new Error(`Parent file with id ${dto.parent} not found`);
-            }
+            parentFile = await this.fileRepository.findOne({where: {id: dto.parent}});
+            if (!parentFile) throw new Error(`Parent file with id ${dto.parent} not found`);
+
         }
 
-        return await this.saveFileTree(dto, user, parentFile);
+        const savedFile = await this.saveFileTree(dto, user, parentFile);
+
+        return this.mapFileToDto(savedFile, dto.author);
     }
 
-    async changeLikes(dto: ChangeFileLikesDto): Promise<File> {
-        const file = await this.fileRepository.findOne({ where: { id: dto.id } });
+    async changeLikes(dto: ChangeFileLikesDto): Promise<FileDto> {
+        const file = await this.fileRepository.findOne({where: {id: dto.id}});
         if (!file) {
             throw new Error(`File with id ${dto.id} not found`);
         }
@@ -121,11 +153,29 @@ export class FilesService {
         file.likedEmails = likedBy;
         file.likes = likedBy.length;
 
-        return await this.fileRepository.save(file);
+        const savedFile = await this.fileRepository.save(file);
+
+        const isLiked = savedFile.likedEmails.includes(dto.email);
+
+        const fileDto: FileDto = {
+            id: file.id,
+            type: file.type,
+            name: file.name,
+            content: file.content,
+            status: file.status,
+            likes: file.likes,
+            lastEditor: file.lastEditor,
+            author: file.author,
+            parent: file.parent ? file.parent.id : null,
+            children: [],
+            isLiked
+        };
+
+        return fileDto;
     }
 
     async changeName(dto: RenameFileDto): Promise<File> {
-        const file = await this.fileRepository.findOne({ where: { id: dto.id } });
+        const file = await this.fileRepository.findOne({where: {id: dto.id}});
         if (!file) {
             throw new Error(`File with id ${dto.id} not found`);
         }
@@ -136,7 +186,7 @@ export class FilesService {
     }
 
     async changeContent(dto: ChangeFileContentDto): Promise<File> {
-        const file = await this.fileRepository.findOne({ where: { id: dto.id } });
+        const file = await this.fileRepository.findOne({where: {id: dto.id}});
         if (!file) {
             throw new Error(`File with id ${dto.id} not found`);
         }
@@ -148,10 +198,10 @@ export class FilesService {
     }
 
     async deleteFileTree(dto: DeleteFileDto): Promise<number> {
-        const { id, email } = dto;
+        const {id, email} = dto;
         const treeRepository = this.fileRepository.manager.getTreeRepository(File);
 
-        const root = await this.fileRepository.findOne({ where: { id } });
+        const root = await this.fileRepository.findOne({where: {id}});
         if (!root) {
             throw new Error(`File with id ${id} not found`);
         }
@@ -204,15 +254,15 @@ export class FilesService {
 
         const filesOnly = await this.fileRepository
             .createQueryBuilder('file')
-            .where('file.id IN (:...ids)', { ids: idsToRemove })
-            .andWhere('file.type = :fileType', { fileType: 'File' })
+            .where('file.id IN (:...ids)', {ids: idsToRemove})
+            .andWhere('file.type = :fileType', {fileType: 'File'})
             .getMany();
 
         const filesCount = filesOnly.length;
 
         try {
             await this.imagesService.deleteImgbbImages(Array.from(allImageNames));
-        }catch (error) {
+        } catch (error) {
             console.warn(error.message);
         }
 
@@ -223,5 +273,21 @@ export class FilesService {
         }
 
         return id;
+    }
+
+    private mapFileToDto(file: File, loggedInUserEmail?: string): FileDto {
+        return {
+            id: file.id,
+            type: file.type,
+            name: file.name,
+            content: file.content,
+            status: file.status,
+            likes: file.likes || 0,
+            isLiked: file.likedEmails?.includes(loggedInUserEmail || '') || false,
+            lastEditor: file.lastEditor,
+            author: file.author,
+            children: file.children?.map(child => this.mapFileToDto(child, loggedInUserEmail)) || [],
+            parent: file.parent ? file.parent.id : null,
+        };
     }
 }
