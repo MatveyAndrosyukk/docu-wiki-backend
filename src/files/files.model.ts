@@ -30,7 +30,7 @@ export class File {
     @Column('simple-array')
     likedEmails: string[];
 
-    @Column({type: 'varchar', nullable: false, unique: false})
+    @Column({type: 'varchar', nullable: false, unique: false, default: ''})
     lastEditor: string;
 
     @ManyToOne(() => User, user => user.files, {nullable: false})

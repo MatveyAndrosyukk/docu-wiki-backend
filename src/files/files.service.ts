@@ -89,7 +89,14 @@ export class FilesService {
         return index !== -1;
     }
 
-    async saveFileTree(dto: CreateFileDto, author: User, parentFile: File | null = null): Promise<File> {
+    private async saveFileTree(
+        dto: CreateFileDto,
+        loggedInUser: User,
+        parentFile: File | null = null,
+        targetUser: User,
+    ): Promise<File> {
+
+
         const fileLikes = dto.likes ? dto.likes : 0;
         const file = this.fileRepository.create({
             type: dto.type,
@@ -97,31 +104,41 @@ export class FilesService {
             content: dto.content,
             status: 'Closed',
             likes: fileLikes,
-            author,
+            author: targetUser,
             parent: parentFile,
-            lastEditor: dto.author,
+            lastEditor: loggedInUser.email,
         });
 
         const savedFile = await this.fileRepository.save(file);
 
         if (dto.children && dto.children.length > 0) {
             for (const childDto of dto.children) {
-                await this.saveFileTree(childDto, author, savedFile);
+                await this.saveFileTree(childDto, loggedInUser, savedFile, targetUser);
             }
         }
 
         const treeRepository = this.fileRepository.manager.getTreeRepository(File);
 
         if (dto.type === 'File') {
-            await this.userService.changeAmountOfFiles(author.email, -1);
+            await this.userService.changeAmountOfFiles(targetUser.email, -1);
         }
 
         return await treeRepository.findDescendantsTree(savedFile);
     }
 
-    async saveFileTreeForUser(dto: CreateFileDto): Promise<FileDto> {
-        const user = await this.userService.findByEmail(dto.author);
-        if (!user) throw new Error(`User with email ${dto.author} not found`);
+    async saveFileTreeForUser(
+        dto: CreateFileDto,
+        loggedInUser: User
+    ): Promise<FileDto> {
+        const user = await this.userService.findByEmail(loggedInUser.email);
+        if (!user) throw new Error(`User with email ${loggedInUser.email} not found`);
+
+        const targetUser = await this.userService.findByEmail(dto.targetUserEmail);
+        if (!targetUser) throw new Error(`User with email ${dto.targetUserEmail} not found`);
+
+        if (targetUser.email !== user.email) {
+            if (!targetUser.whoCanEdit.includes(user)) throw new Error(`User with email ${user.email} can't create file for ${targetUser.email}`);
+        }
 
         let parentFile: File | null = null;
         if (dto.parent !== null && dto.parent !== undefined) {
@@ -130,9 +147,9 @@ export class FilesService {
 
         }
 
-        const savedFile = await this.saveFileTree(dto, user, parentFile);
+        const savedFile = await this.saveFileTree(dto, user, parentFile, targetUser);
 
-        return this.mapFileToDto(savedFile, dto.author);
+        return this.mapFileToDto(savedFile, loggedInUser.email);
     }
 
     async changeLikes(dto: ChangeFileLikesDto): Promise<FileDto> {
@@ -275,7 +292,7 @@ export class FilesService {
         return id;
     }
 
-    private mapFileToDto(file: File, loggedInUserEmail?: string): FileDto {
+    mapFileToDto(file: File, loggedInUserEmail?: string): FileDto {
         return {
             id: file.id,
             type: file.type,

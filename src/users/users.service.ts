@@ -174,8 +174,12 @@ export class UsersService {
         }
 
         const existingUser = await this.findByName(dto.name);
+
         if (existingUser) {
-            throw new Error(`User with name ${dto.name} already exists`);
+            if (existingUser.id !== user.id) {
+                throw new Error(`User with name ${dto.name} already exists`);
+            }
+            return user;
         }
 
         user.name = dto.name;

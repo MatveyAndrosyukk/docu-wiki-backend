@@ -1,4 +1,16 @@
-import {Body, Controller, Delete, Get, HttpException, HttpStatus, Post, Put, Query} from '@nestjs/common';
+import {
+    Body,
+    Controller,
+    Delete,
+    Get,
+    HttpException,
+    HttpStatus,
+    Post,
+    Put,
+    Query,
+    Req,
+    UseGuards
+} from '@nestjs/common';
 import {FilesService} from "./files.service";
 import {CreateFileDto} from "./dto/create-file.dto";
 import {ChangeFileLikesDto} from "./dto/change-file-likes.dto";
@@ -8,6 +20,8 @@ import {ChangeFileContentDto} from "./dto/change-file-content.dto";
 import {DeleteFileDto} from "./dto/delete-file.dto";
 import {GetFilesForUserDto} from "./dto/get-file-for-user.dto";
 import {FileDto} from "./types/file-dto";
+import {RequestWithUser} from "./types/request-with-user";
+import {JwtAuthGuard} from "../auth/jwt-auth.guard";
 
 @Controller('files')
 export class FilesController {
@@ -53,10 +67,13 @@ export class FilesController {
     }
 
     @Post()
-    async saveFileForUser(@Body() dto: CreateFileDto): Promise<FileDto> {
+    @UseGuards(JwtAuthGuard)
+    async createFile(
+        @Body() dto: CreateFileDto,
+        @Req() req: RequestWithUser
+    ): Promise<FileDto> {
         try {
-            console.log(dto);
-            return await this.fileService.saveFileTreeForUser(dto);
+            return await this.fileService.saveFileTreeForUser(dto, req.user);
         } catch (error) {
             throw new HttpException(
                 error instanceof Error ? error.message : 'Failed to save file',

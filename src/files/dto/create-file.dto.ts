@@ -2,12 +2,9 @@ import { Type } from 'class-transformer';
 import { IsEmail, IsEnum, IsString, IsNumber, IsOptional } from '@nestjs/class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { FileType } from '../types/file-type';
+import {IsNotEmpty} from "class-validator";
 
 export class CreateFileDto {
-    @ApiProperty({ example: 'user@gmail.com', description: `The email of user to save file for him` })
-    @IsEmail({ message: 'Author email is incorrect' })
-    author: string;
-
     @ApiProperty({ example: 'Folder', description: `Type of saved file, can be 'File' or 'Folder'` })
     @IsEnum(FileType, { message: `File type can be only 'Folder' or 'File'` })
     type: string;
@@ -33,4 +30,8 @@ export class CreateFileDto {
 
     @IsOptional()
     children: CreateFileDto[];
+
+    @IsEmail()
+    @IsNotEmpty()
+    targetUserEmail: string;
 }
