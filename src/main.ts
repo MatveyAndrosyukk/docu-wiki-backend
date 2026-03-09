@@ -15,6 +15,7 @@ async function main() {
     ],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization', 'Access-Control-Allow-Origin'],
   });
 
   const config = new DocumentBuilder()

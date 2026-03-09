@@ -15,8 +15,8 @@ import {RolesModule} from "../roles/roles.module";
         forwardRef(() => RolesModule)
     ],
     controllers: [UsersController],
-    providers: [UsersService, JwtAuthGuard, RolesGuard],
-    exports: [UsersService, JwtAuthGuard, RolesGuard]
+    providers: [UsersService, RolesGuard],
+    exports: [UsersService, RolesGuard]
 })
 export class UsersModule {
 }
