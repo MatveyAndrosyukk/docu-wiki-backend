@@ -26,13 +26,17 @@ export class FilesService {
     async getAllForUser(dto: GetFilesForUserDto): Promise<FileDto[]> {
         const {viewedUserEmail, loggedInUserEmail} = dto;
 
+        console.log('Method /files/ starts connecting to DB')
+        console.time('findByEmail (user)');
         const user = await this.userService.findByEmail(viewedUserEmail);
+        console.timeEnd('findByEmail (user)');
         if (!user) {
             throw new Error(`User with email ${viewedUserEmail} not found`);
         }
 
         const treeRepository = this.fileRepository.manager.getTreeRepository(File);
 
+        console.time('Fetching files for user');
         const roots = await this.fileRepository.createQueryBuilder('file')
             .leftJoinAndSelect('file.author', 'author')
             .where('author.id = :userId', {userId: user.id})
@@ -47,6 +51,7 @@ export class FilesService {
         const trees = await Promise.all(
             roots.map(root => treeRepository.findDescendantsTree(root)),
         );
+        console.timeEnd('Fetching files for user');
 
         const addIsLikedToTree = (files: File[], loggedInUserEmail: string) => {
             return files.map(file => {
