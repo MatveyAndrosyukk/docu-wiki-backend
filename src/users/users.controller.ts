@@ -28,14 +28,11 @@ export class UsersController {
 
     @Get('findOne')
     async findUser(@Query('id') id?: string, @Query('email') email?: string): Promise<User | null> {
-        console.time('findOne');
         if (id) {
             return await this.usersService.findById(Number(id));
         }
         if (email) {
-            const result = await this.usersService.findByEmail(email);
-            console.timeEnd('findOne');
-            return result;
+            return await this.usersService.findByEmail(email);
         }
         return null;
     }

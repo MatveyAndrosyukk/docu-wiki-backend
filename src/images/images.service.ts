@@ -6,6 +6,7 @@ import {firstValueFrom} from 'rxjs';
 import * as process from "node:process";
 import {DeleteImgbbImagesMethodResponse, ImgbbUploadSuccessResponse, UploadToImgbbMethodResponse} from "./images.types";
 import FormData = require('form-data');
+import sharp from "sharp";
 
 @Injectable()
 export class ImagesService {
@@ -17,43 +18,51 @@ export class ImagesService {
     }
 
     async uploadToImgbb(file: Express.Multer.File): Promise<UploadToImgbbMethodResponse> {
+
         const timestamp = Date.now();
         const randomSuffix = Math.round(Math.random() * 1e9)
-        const ext = path.extname(file.originalname)
-        const uniqueFilename = `${timestamp}-${randomSuffix}${ext}`
+        const uniqueFilename = `${timestamp}-${randomSuffix}.webp`
+
+        const compressedBuffer = await sharp(file.buffer)
+            .resize({
+                width: 1600,
+                withoutEnlargement: true
+            })
+            .webp({
+                quality: 75
+            })
+            .toBuffer();
 
         const form = new FormData();
+
         form.append('key', this.imgbbApiKey);
-        form.append('image', file.buffer, {
+
+        form.append('image', compressedBuffer, {
             filename: uniqueFilename,
-            contentType: file.mimetype,
-            knownLength: file.buffer.length,
+            contentType: 'image/webp',
+            knownLength: compressedBuffer.length
         });
 
-        try {
-            const response = await firstValueFrom(
-                this.httpService.post<ImgbbUploadSuccessResponse>('https://api.imgbb.com/1/upload', form, {
-                    headers: form.getHeaders(),
-                }),
-            );
+        const response = await firstValueFrom(
+            this.httpService.post<ImgbbUploadSuccessResponse>(
+                'https://api.imgbb.com/1/upload',
+                form,
+                { headers: form.getHeaders() }
+            )
+        );
 
-            const data: any = response.data;
-            if (data.status === 200) {
-                return {
-                    url: data.data.url,
-                    delete_url: data.data.delete_url,
-                    filename: uniqueFilename,
-                    originalName: file.originalname,
-                };
-            } else {
-                throw new Error(data.error?.message || 'Upload failed');
-            }
-        } catch (error: any) {
-            throw new HttpException(
-                'imgBB upload error: ' + (error.response?.data?.error?.message || error.message),
-                HttpStatus.BAD_REQUEST
-            );
+        const data: any = response.data;
+
+        if (data.status === 200) {
+            return {
+                url: data.data.url,
+                delete_url: data.data.delete_url,
+                filename: uniqueFilename,
+                originalName: file.originalname,
+            };
         }
+
+        throw new Error(data.error?.message || 'Upload failed');
     }
 
     async deleteImgbbImages(deleteUrls: string[]): Promise<DeleteImgbbImagesMethodResponse> {

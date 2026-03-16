@@ -12,7 +12,7 @@ export class ImagesController {
     @Post()
     @UseInterceptors(
         FileInterceptor('file', {
-            limits: {fileSize: 32 * 1024 * 1024},
+            limits: {fileSize: 5 * 1024 * 1024},
             fileFilter: (_req, file, cb) => {
                 if (!file.mimetype.match(/image\//)) {
                     return cb(new HttpException('Only image files are allowed!', HttpStatus.BAD_REQUEST), false);

@@ -48,10 +48,8 @@ export class AuthService {
     }
 
     async generateToken(user: User) {
-        console.log('Method /auth/login starts connecting to DB')
-        console.time('findById');
         const fullUser = await this.usersService.findById(user.id);
-        console.timeEnd('findById');
+
         const payload = {
             email: fullUser?.email,
             id: fullUser?.id,

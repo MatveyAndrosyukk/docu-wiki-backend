@@ -31,16 +31,12 @@ export class UsersService {
 
     async findByEmail(email: string): Promise<User | null> {
         const cacheKey = `${this.cacheKeyPrefix}${email}`;
-        console.log('Method /users/findOne starts connecting to DB')
-        console.time('getFromCache');
         let user = await this.cacheManager.get<User | null>(cacheKey);
 
         if (user !== null && user !== undefined) {
             return user;
         }
-        console.timeEnd('getFromCache');
 
-        console.time('getUserByEmailFromDb');
         user = await this.usersRepository.createQueryBuilder('user')
             .leftJoinAndSelect('user.roles', 'role')
             .leftJoinAndSelect('user.whoCanEdit', 'editor')
@@ -53,8 +49,6 @@ export class UsersService {
             ])
             .where('user.email = :email', { email })
             .getOne();
-
-        console.timeEnd('getUserByEmailFromDb');
 
         if (user) {
             await this.cacheManager.set(cacheKey, user, 300);
