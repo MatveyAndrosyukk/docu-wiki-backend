@@ -3,6 +3,7 @@ import {Express} from 'express';
 import {FileInterceptor} from "@nestjs/platform-express";
 import {ImagesService} from "./images.service";
 import {convertUrlsToResponse} from "./images.utils";
+import {memoryStorage} from "multer";
 
 @Controller('images')
 export class ImagesController {
@@ -13,6 +14,7 @@ export class ImagesController {
     @UseInterceptors(
         FileInterceptor('file', {
             limits: {fileSize: 5 * 1024 * 1024},
+            storage: memoryStorage(),
             fileFilter: (_req, file, cb) => {
                 if (!file.mimetype.match(/image\//)) {
                     return cb(new HttpException('Only image files are allowed!', HttpStatus.BAD_REQUEST), false);
@@ -32,6 +34,7 @@ export class ImagesController {
             };
 
         } catch (error) {
+            console.error(error)
             throw new HttpException(
                 error instanceof Error ? error.message : 'Failed to save image',
                 HttpStatus.INTERNAL_SERVER_ERROR

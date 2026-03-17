@@ -1,12 +1,11 @@
 import {HttpException, HttpStatus, Injectable} from '@nestjs/common';
-import * as path from 'path';
 import {Express} from 'express';
 import {HttpService} from '@nestjs/axios';
 import {firstValueFrom} from 'rxjs';
 import * as process from "node:process";
 import {DeleteImgbbImagesMethodResponse, ImgbbUploadSuccessResponse, UploadToImgbbMethodResponse} from "./images.types";
+import * as sharp from "sharp";
 import FormData = require('form-data');
-import sharp from "sharp";
 
 @Injectable()
 export class ImagesService {
@@ -47,7 +46,7 @@ export class ImagesService {
             this.httpService.post<ImgbbUploadSuccessResponse>(
                 'https://api.imgbb.com/1/upload',
                 form,
-                { headers: form.getHeaders() }
+                {headers: form.getHeaders()}
             )
         );
 
