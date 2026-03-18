@@ -42,48 +42,6 @@ export class AuthService {
         return { message: 'Confirmation email sent' };
     }
 
-    async login(dto: CreateUserDto) {
-        const user = await this.validateUser(dto);
-        return this.generateToken(user);
-    }
-
-    async generateToken(user: User) {
-        const fullUser = await this.usersService.findById(user.id);
-
-        const payload = {
-            email: fullUser?.email,
-            id: fullUser?.id,
-            roles: fullUser?.roles.map(role => role.value)
-        };
-        return { token: this.jwtService.sign(payload) };
-    }
-
-    async verify(token: string): Promise<void> {
-        const payload = await this.jwtService.verify(token);
-        const user = await this.usersService.findById((payload as any).id);
-        if (!user) {
-            throw new Error('User not found');
-        }
-        user.isConfirmed = true;
-        await this.usersService.save(user);
-    }
-
-    private async validateUser(dto: CreateUserDto): Promise<User> {
-        const { email, password } = dto;
-        const user = await this.usersService.findByEmail(email);
-        if (!user) {
-            throw new Error(`Email ${email} not registered`);
-        }
-        const passwordEqual = await bcrypt.compare(password, user.password);
-        if (!passwordEqual) {
-            throw new Error('Password is incorrect');
-        }
-        if (user.banned) {
-            throw new Error('User is banned');
-        }
-        return user;
-    }
-
     async googleLogin(code: string) {
         const { tokens } = await this.client.getToken(code);
         this.client.setCredentials(tokens);
@@ -116,9 +74,80 @@ export class AuthService {
             id: user.id,
             roles: user.roles.map(role => role.value)
         };
-        const token = this.jwtService.sign(jwtPayload);
+        const accessToken = this.jwtService.sign(jwtPayload, {
+            expiresIn: '15m',
+        });
 
-        return { token, user };
+        const refreshToken = this.jwtService.sign(jwtPayload, {
+            expiresIn: '7d',
+        });
+
+        return {
+            accessToken,
+            refreshToken,
+            user,
+        };
+    }
+
+    async login(dto: CreateUserDto) {
+        const user = await this.validateUser(dto);
+        return this.generateTokens(user);
+    }
+
+    async refresh(refreshToken: string) {
+        try {
+            const payload = this.jwtService.verify(refreshToken);
+
+            const user = await this.usersService.findById(payload.id);
+            if (!user) {
+                throw new Error('User not found!')
+            }
+
+            return this.generateTokens(user);
+        } catch (error) {
+            throw new Error('Invalid refresh token');
+        }
+    }
+
+    async generateTokens(user: User) {
+        const fullUser = await this.usersService.findById(user.id);
+
+        const payload = {
+            email: fullUser?.email,
+            id: fullUser?.id,
+            roles: fullUser?.roles.map(role => role.value)
+        };
+
+        const accessToken = this.jwtService.sign(payload, {expiresIn: '15m'});
+        const refreshToken = this.jwtService.sign(payload, {expiresIn: '7d'})
+
+        return { accessToken, refreshToken };
+    }
+
+    async verify(token: string): Promise<void> {
+        const payload = await this.jwtService.verify(token);
+        const user = await this.usersService.findById((payload as any).id);
+        if (!user) {
+            throw new Error('User not found');
+        }
+        user.isConfirmed = true;
+        await this.usersService.save(user);
+    }
+
+    private async validateUser(dto: CreateUserDto): Promise<User> {
+        const { email, password } = dto;
+        const user = await this.usersService.findByEmail(email);
+        if (!user) {
+            throw new Error(`Email ${email} not registered`);
+        }
+        const passwordEqual = await bcrypt.compare(password, user.password);
+        if (!passwordEqual) {
+            throw new Error('Password is incorrect');
+        }
+        if (user.banned) {
+            throw new Error('User is banned');
+        }
+        return user;
     }
 
     async forgotPassword(email: string): Promise<{ message: string }> {

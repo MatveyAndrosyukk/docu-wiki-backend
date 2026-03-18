@@ -58,6 +58,15 @@ export class AuthController {
         }
     }
 
+    @Post('refresh')
+    async refresh(@Body('refreshToken') refreshToken: string) {
+        try {
+            return await this.authService.refresh(refreshToken);
+        } catch (error) {
+            throw new HttpException('Unauthorized', HttpStatus.UNAUTHORIZED);
+        }
+    }
+
     @Post('forgot-password')
     async forgotPassword(@Body('email') email: string) {
         try {
