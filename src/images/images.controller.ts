@@ -57,39 +57,4 @@ export class ImagesController {
             );
         }
     }
-
-    // @Get(':name')
-    // async getImage(@Param('name') name: string, @Res() res: Response) {
-    //     try {
-    //         const filePath = await this.imageService.getImagePathByName(name);
-    //         res.sendFile(path.resolve(filePath));
-    //     } catch (error) {
-    //         throw new HttpException(
-    //             error instanceof Error ? error.message : 'Image not found',
-    //             HttpStatus.NOT_FOUND
-    //         );
-    //     }
-    // }
-
-    // @Delete()
-    // async deleteImages(@Body() body: { extraImages: string[] }) {
-    //     const {extraImages} = body;
-    //
-    //     if (!extraImages || extraImages.length === 0 || !Array.isArray(extraImages)) {
-    //         throw new HttpException('Extra images must be a non-empty array', HttpStatus.BAD_REQUEST);
-    //     }
-    //
-    //     try {
-    //         const deletedCount = await this.imageService.deleteImages(extraImages);
-    //         return {
-    //             deleted: deletedCount,
-    //             message: `Successfully deleted ${deletedCount} image(s)`,
-    //         };
-    //     } catch (error) {
-    //         throw new HttpException(
-    //             error instanceof Error ? error.message : 'Failed to delete images',
-    //             HttpStatus.INTERNAL_SERVER_ERROR
-    //         );
-    //     }
-    // }
 }

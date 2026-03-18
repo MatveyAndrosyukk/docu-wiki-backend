@@ -101,32 +101,4 @@ export class ImagesService {
         }
         return {success: true, message: 'Images were deleted successfully.'};
     }
-
-    // async saveImage(file: Express.Multer.File): Promise<string> {
-    //     if (!fs.existsSync(this.uploadPath)) {
-    //         fs.mkdirSync(this.uploadPath, {recursive: true});
-    //     }
-    //     return file.filename;
-    // }
-
-    // async getImagePathByName(name: string): Promise<string> {
-    //     const filePath = path.join(this.uploadPath, name);
-    //     if (!fs.existsSync(filePath)) {
-    //         throw new Error(`Image ${name} not found`);
-    //     }
-    //     return filePath;
-    // }
-    //
-    // async deleteImages(extraImages: string[]): Promise<number> {
-    //     let deletedCount = 0;
-    //     for (const image of extraImages) {
-    //         try {
-    //             const imagePath = await this.getImagePathByName(image);
-    //             fs.unlinkSync(imagePath);
-    //             deletedCount++;
-    //         } catch {
-    //         }
-    //     }
-    //     return deletedCount;
-    // }
 }
