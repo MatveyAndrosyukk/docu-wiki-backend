@@ -175,7 +175,7 @@ export class FilesService {
 
         const isLiked = savedFile.likedEmails.includes(dto.email);
 
-        const fileDto: FileDto = {
+        return {
             id: file.id,
             type: file.type,
             name: file.name,
@@ -188,8 +188,6 @@ export class FilesService {
             children: [],
             isLiked
         };
-
-        return fileDto;
     }
 
     async changeName(dto: RenameFileDto): Promise<File> {
