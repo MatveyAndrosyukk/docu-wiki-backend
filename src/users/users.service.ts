@@ -287,4 +287,18 @@ export class UsersService {
         const cacheKey = `${this.cacheKeyPrefix}${email}`;
         await this.cacheManager.del(cacheKey);
     }
+
+    async generateUniqueNameFromGoogle(givenName?: string, familyName?: string): Promise<string> {
+        const base = `${(givenName || 'user').toLowerCase()}_${(familyName || 'google').toLowerCase()}`.replace(/[^a-z0-9_]/g, '_');
+
+        let candidate = base;
+        let counter = 1;
+
+        while (await this.findByUsername(candidate)) {
+            candidate = `${base}_${counter}`;
+            counter++;
+        }
+
+        return candidate;
+    }
 }

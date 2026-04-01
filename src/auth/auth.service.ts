@@ -67,10 +67,16 @@ export class AuthService {
         }
 
         let user = await this.usersService.findByEmail(payload.email);
+
         if (!user) {
+            const name = await this.usersService.generateUniqueNameFromGoogle(
+                payload.given_name,
+                payload.family_name,
+            );
+
             user = await this.usersService.save({
                 email: payload.email,
-                name: `${payload.given_name} ${payload.family_name}`,
+                name,
                 password: '',
             });
         }
@@ -84,13 +90,9 @@ export class AuthService {
             id: user.id,
             roles: user.roles.map(role => role.value)
         };
-        const accessToken = this.jwtService.sign(jwtPayload, {
-            expiresIn: '15m',
-        });
 
-        const refreshToken = this.jwtService.sign(jwtPayload, {
-            expiresIn: '7d',
-        });
+        const accessToken = this.jwtService.sign(jwtPayload, { expiresIn: '15m' });
+        const refreshToken = this.jwtService.sign(jwtPayload, { expiresIn: '7d' });
 
         return {
             accessToken,
