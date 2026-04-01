@@ -1,11 +1,11 @@
-import { Injectable } from '@nestjs/common';
-import { CreateUserDto } from "../users/dto/create-user.dto";
-import { UsersService } from "../users/users.service";
+import {Injectable} from '@nestjs/common';
+import {CreateUserDto} from "../users/dto/create-user.dto";
+import {UsersService} from "../users/users.service";
 import * as bcrypt from 'bcryptjs';
-import { User } from "../users/users.model";
-import { JwtService } from "@nestjs/jwt";
-import { EmailService } from "../email/email.service";
-import { OAuth2Client } from 'google-auth-library';
+import {User} from "../users/users.model";
+import {JwtService} from "@nestjs/jwt";
+import {EmailService} from "../email/email.service";
+import {OAuth2Client} from 'google-auth-library';
 
 @Injectable()
 export class AuthService {
@@ -24,26 +24,36 @@ export class AuthService {
     }
 
     async register(dto: CreateUserDto) {
-        const { email, password } = dto;
+        const {email, password} = dto;
         const candidate = await this.usersService.findByEmail(email);
+        const candidateByUsername = await this.usersService.findByUsername(dto.name);
+
         if (candidate) {
             throw new Error(`Email is already registered`);
         }
 
+        if (candidateByUsername) {
+            throw new Error('Username is already registered');
+        }
+
         const hashedPassword = await bcrypt.hash(password, 10);
-        const user = await this.usersService.save({ email, password: hashedPassword });
+        const user = await this.usersService.save({
+            email,
+            password: hashedPassword,
+            name: dto.name
+        });
 
         const confirmToken = this.jwtService.sign(
-            { email: user.email, id: user.id },
-            { expiresIn: '1h' }
+            {email: user.email, id: user.id},
+            {expiresIn: '1h'}
         );
         await this.emailService.sendVerificationEmail(email, confirmToken);
 
-        return { message: 'Confirmation email sent' };
+        return {message: 'Confirmation email sent'};
     }
 
     async googleLogin(code: string) {
-        const { tokens } = await this.client.getToken(code);
+        const {tokens} = await this.client.getToken(code);
         this.client.setCredentials(tokens);
 
         const ticket = await this.client.verifyIdToken({
@@ -121,7 +131,7 @@ export class AuthService {
         const accessToken = this.jwtService.sign(payload, {expiresIn: '15m'});
         const refreshToken = this.jwtService.sign(payload, {expiresIn: '7d'})
 
-        return { accessToken, refreshToken };
+        return {accessToken, refreshToken};
     }
 
     async verify(token: string): Promise<void> {
@@ -135,7 +145,7 @@ export class AuthService {
     }
 
     private async validateUser(dto: CreateUserDto): Promise<User> {
-        const { email, password } = dto;
+        const {email, password} = dto;
         const user = await this.usersService.findByEmail(email);
         if (!user) {
             throw new Error(`Email ${email} not registered`);
@@ -156,11 +166,11 @@ export class AuthService {
             throw new Error('User not found');
         }
         const resetToken = this.jwtService.sign(
-            { email: user.email, id: user.id, type: 'reset' },
-            { expiresIn: '1h' }
+            {email: user.email, id: user.id, type: 'reset'},
+            {expiresIn: '1h'}
         );
         await this.emailService.sendResetPasswordEmail(user.email, resetToken);
-        return { message: 'Link has been sent to email address' };
+        return {message: 'Link has been sent to email address'};
     }
 
     async resetPassword(token: string, newPassword: string): Promise<{ message: string }> {
@@ -170,6 +180,6 @@ export class AuthService {
         }
         const hashedPassword = await bcrypt.hash(newPassword, 10);
         await this.usersService.updatePassword((payload as any).id, hashedPassword);
-        return { message: 'Password was reset successfully' };
+        return {message: 'Password was reset successfully'};
     }
 }

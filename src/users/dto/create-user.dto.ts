@@ -11,5 +11,5 @@ export class CreateUserDto {
     password: string;
 
     @ApiProperty({example: 'User Name', description: `User's name`, required: false})
-    name?: string;
+    name: string;
 }

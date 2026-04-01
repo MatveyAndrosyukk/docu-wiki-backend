@@ -44,6 +44,11 @@ export class UsersController {
         return await this.usersService.findAll();
     }
 
+    @Get('email-by-username')
+    async getEmailByUsername(@Query('username') username: string) {
+        return await this.usersService.getEmailByUsername(username);
+    }
+
     @Post()
     async saveUser(@Body() dto: CreateUserDto): Promise<User> {
         try {

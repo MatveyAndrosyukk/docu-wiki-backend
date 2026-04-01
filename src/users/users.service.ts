@@ -25,8 +25,22 @@ export class UsersService {
         return await this.usersRepository.findOne({where: {id}, relations: ['roles']});
     }
 
+    async findByUsername(username: string): Promise<User | null> {
+        return this.usersRepository.findOneBy({ name: username });
+    }
+
     async findAll(): Promise<User[]> {
         return await this.usersRepository.find({relations: ['roles']});
+    }
+
+    async getEmailByUsername(username: string) {
+        const user = await this.findByUsername(username);
+
+        if (!user) {
+            throw new Error('User not found');
+        }
+
+        return { email: user.email };
     }
 
     async findByEmail(email: string): Promise<User | null> {
@@ -92,10 +106,6 @@ export class UsersService {
         }
 
         const user = this.usersRepository.create(dto);
-
-        if (!user.name) {
-            user.name = await this.generateUniqueUsername();
-        }
 
         user.roles = [];
 
@@ -245,19 +255,6 @@ export class UsersService {
         await this.invalidateEmailCache(user.email);
 
         return await this.usersRepository.save(user);
-    }
-
-    async generateUniqueUsername(): Promise<string> {
-        let username: string;
-        let isUnique = false;
-        do {
-            username = 'user' + Math.floor(Math.random() * 10000000);
-            const existing = await this.usersRepository.findOne({where: {name: username}});
-            if (!existing) {
-                isUnique = true;
-            }
-        } while (!isUnique);
-        return username;
     }
 
     async changeAmountOfFiles(email: string, flag: number): Promise<void> {
