@@ -8,7 +8,7 @@ export class ChangeFileContentDto{
     @ApiProperty({ example: 'Some string', description: `A new content of the file`})
     @IsString({message: 'Content should be a string'})
     content: string;
-    @ApiProperty({ example: 'admin@gmail.com', description: `The file last editor`})
+    @ApiProperty({ example: 'user1234', description: `The file last editor`})
     @IsString({message: 'Content should be a string'})
     editor: string;
 }
