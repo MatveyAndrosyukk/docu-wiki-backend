@@ -12,7 +12,6 @@ import {File} from "./files/files.model";
 import {AuthModule} from './auth/auth.module';
 import {ImagesModule} from './images/images.module';
 import {CacheModule} from "@nestjs/cache-manager";
-import {TagMigrationService} from "./services/tag-migration.service";
 
 @Module({
     imports: [
@@ -46,15 +45,7 @@ import {TagMigrationService} from "./services/tag-migration.service";
     controllers: [],
     providers: [
         DataSeederService,
-        TagMigrationService,
     ],
 })
 export class AppModule {
-    constructor(
-        private readonly tagMigrationService: TagMigrationService
-    ) {}
-
-    async onModuleInit() {
-        await this.tagMigrationService.run();
-    }
 }
